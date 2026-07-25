@@ -44,8 +44,7 @@ cursor.execute("""
         container_type TEXT,
         theme TEXT,
         location TEXT,
-        status TEXT,
-               
+        status TEXT               
     )
 """)       
 
