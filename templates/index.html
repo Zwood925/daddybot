@@ -23,6 +23,9 @@ body{font-family:'Inter',system-ui,sans-serif;background:#0b0a09;color:#fafaf9}
 .tab-active{border-bottom-color:#f59e0b;color:#fafaf9;background:rgba(245,158,11,0.08)}
 .tab-inactive{border-bottom-color:transparent;color:#a8a29e;background:transparent}
 .tab-inactive:hover{color:#fafaf9;background:rgba(255,255,255,0.03)}
+.inv-tab-active{border-bottom-color:#f59e0b;color:#fafaf9;background:rgba(245,158,11,0.08)}
+.inv-tab-inactive{border-bottom-color:transparent;color:#a8a29e;background:transparent}
+.inv-tab-inactive:hover{color:#fafaf9;background:rgba(255,255,255,0.03)}
 </style>
 </head>
 <body class="min-h-screen antialiased selection:bg-amber-500/30">
@@ -34,7 +37,6 @@ body{font-family:'Inter',system-ui,sans-serif;background:#0b0a09;color:#fafaf9}
     <p class="text-zinc-400 mt-2 text-sm md:text-base">Command Center — Library · Inventory · Film · Weather · Scoreboard</p>
   </div>
   <div class="flex gap-3">
-    <button onclick="showTab('library')" class="text-xs font-semibold px-3 py-1.5 rounded-full bg-zinc-900/70 border border-zinc-700 text-zinc-300 hover:text-amber-400 transition">Library</button>
   </div>
 </header>
 
@@ -51,16 +53,19 @@ body{font-family:'Inter',system-ui,sans-serif;background:#0b0a09;color:#fafaf9}
   <div class="grid md:grid-cols-3 gap-6">
     <div class="glass rounded-2xl p-6">
       <div class="flex items-center justify-between mb-4"><h2 class="text-xl font-bold text-amber-300">📚 Daddy's Vault</h2><span class="text-xs text-zinc-400 bg-zinc-800 px-2 py-0.5 rounded">{{ daddy_books|length }} books</span></div>
-      <div class="space-y-3 max-h-[320px] overflow-y-auto pr-2" id="daddy-library-list">{% for book in daddy_books %}<div class="p-3 rounded-xl bg-white/[0.03] border border-white/10"><div class="font-semibold text-zinc-100">{{ book.title }}</div><div class="text-xs text-zinc-400">by {{ book.author or 'Unknown' }} • {{ '⭐ ' + (book.rating|string) if book.rating else 'Unrated' }}</div></div>{% else %}<p class="text-zinc-500 text-sm italic">No books logged in Daddy's vault yet.</p>{% endfor %}</div>
+      <div class="space-y-3 max-h-[320px] overflow-y-auto pr-2" id="daddy-library-list">{% for book in daddy_books %}<button class="book-card w-full text-left p-3 rounded-xl bg-white/[0.03] border border-white/10 hover:bg-white/[0.06] transition" data-title="{{ (book.book_title or book.title or 'Untitled')|e }}" data-author="{{ (book.author or 'Unknown')|e }}" data-rating="{{ (book.rating|string) if book.rating else 'Unrated' }}" data-series="{{ (book.series or '—')|e }}" data-liked="{{ (book.what_i_liked or '—')|e }}" data-read_at="{{ (book.read_at or '—')|e }}"><div class="font-semibold text-zinc-100">{{ book.book_title or book.title or 'Untitled' }}</div><div class="text-xs text-zinc-400">by {{ book.author or 'Unknown' }} • {{ '⭐ ' + (book.rating|string) if book.rating else 'Unrated' }}</div></button>{% else %}<p class="text-zinc-500 text-sm italic">No books logged in Daddy's vault yet.</p>{% endfor %}</div>
     </div>
     <div class="glass rounded-2xl p-6">
       <div class="flex items-center justify-between mb-4"><h2 class="text-xl font-bold text-amber-300">📚 KittyKat's Vault</h2><span class="text-xs text-zinc-400 bg-zinc-800 px-2 py-0.5 rounded">{{ wife_books|length }} books</span></div>
-      <div class="space-y-3 max-h-[320px] overflow-y-auto pr-2" id="wife-library-list">{% for book in wife_books %}<div class="p-3 rounded-xl bg-white/[0.03] border border-white/10"><div class="font-semibold text-zinc-100">{{ book.title }}</div><div class="text-xs text-zinc-400">by {{ book.author or 'Unknown' }} • {{ '⭐ ' + (book.rating|string) if book.rating else 'Unrated' }}</div></div>{% else %}<p class="text-zinc-500 text-sm italic">No books logged in KittyKat's vault yet.</p>{% endfor %}</div>
+      <div class="space-y-3 max-h-[320px] overflow-y-auto pr-2" id="wife-library-list">{% for book in wife_books %}<button class="book-card w-full text-left p-3 rounded-xl bg-white/[0.03] border border-white/10 hover:bg-white/[0.06] transition" data-title="{{ (book.book_title or book.title or 'Untitled')|e }}" data-author="{{ (book.author or 'Unknown')|e }}" data-rating="{{ (book.rating|string) if book.rating else 'Unrated' }}" data-series="{{ (book.series or '—')|e }}" data-liked="{{ (book.what_i_liked or '—')|e }}" data-read_at="{{ (book.read_at or '—')|e }}"><div class="font-semibold text-zinc-100">{{ book.book_title or book.title or 'Untitled' }}</div><div class="text-xs text-zinc-400">by {{ book.author or 'Unknown' }} • {{ '⭐ ' + (book.rating|string) if book.rating else 'Unrated' }}</div></button>{% else %}<p class="text-zinc-500 text-sm italic">No books logged in KittyKat's vault yet.</p>{% endfor %}</div>
     </div>
     <div class="glass rounded-2xl p-6">
       <h2 class="text-xl font-bold text-amber-300 mb-4">🤖 AI Recommendation</h2>
-      <button onclick="fetchRec()" class="w-full py-3 bg-gradient-to-r from-amber-500 to-amber-600 text-zinc-950 font-extrabold rounded-xl shadow-lg shadow-amber-500/20 hover:shadow-amber-500/40 transition">Get Recommendation</button>
-      <div id="rec-output" class="mt-4 p-3 rounded-xl bg-zinc-950/50 border border-white/10 text-sm text-zinc-200 leading-relaxed min-h-[120px]">Click the button and let the AI browse your library.</div>
+      <form id="rec-form" onsubmit="event.preventDefault(); fetchRec();" class="flex gap-2 mb-3">
+        <input name="seed_title" id="rec-input" placeholder="Enter a book title..." class="flex-1 bg-zinc-900/70 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:border-amber-500" required/>
+        <button type="submit" class="bg-amber-500 hover:bg-amber-400 text-zinc-950 font-extrabold px-5 py-2 rounded-lg shadow-lg shadow-amber-500/20 transition">Get Recs</button>
+      </form>
+      <div id="rec-output" class="p-3 rounded-xl bg-zinc-950/50 border border-white/10 text-sm text-zinc-200 leading-relaxed min-h-[120px]">Enter a title and hit Get Recs for 5 recommendations based on your library.</div>
     </div>
   </div>
   <div class="glass rounded-2xl p-6">
@@ -73,22 +78,103 @@ body{font-family:'Inter',system-ui,sans-serif;background:#0b0a09;color:#fafaf9}
       <input name="title" placeholder="Title" class="bg-zinc-900/70 border border-zinc-700 rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-amber-500" required/>
       <input name="author" placeholder="Author (optional)" class="bg-zinc-900/70 border border-zinc-700 rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-amber-500"/>
       <input name="rating" placeholder="Rating 1-5 (optional)" type="number" min="1" max="5" class="bg-zinc-900/70 border border-zinc-700 rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-amber-500"/>
+      <textarea name="review" placeholder="Review / notes (optional — searchable later!)" rows="2" class="md:col-span-2 bg-zinc-900/70 border border-zinc-700 rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-amber-500 resize-none"></textarea>
       <button type="submit" class="md:col-span-4 bg-amber-500 hover:bg-amber-400 text-zinc-950 font-extrabold rounded-lg px-6 py-3 transition shadow-lg shadow-amber-500/20">Log It to the Vault</button>
     </form>
     <p id="add-book-status" class="text-xs text-zinc-400 mt-3 hidden"></p>
+  </div>
+
+  <!-- Book detail modal -->
+  <div id="book-modal" onclick="closeModal(event)" class="fixed inset-0 z-50 bg-black/70 hidden items-center justify-center p-6 backdrop-blur-sm">
+    <div onclick="event.stopPropagation()" class="glass rounded-2xl p-6 max-w-md w-full text-zinc-100 shadow-2xl border border-white/10">
+      <div class="flex justify-between items-center mb-3"><h3 id="bm-title" class="text-xl font-bold text-amber-300"></h3><button onclick="closeModal()" class="text-zinc-400 hover:text-white text-lg">✕</button></div>
+      <div class="text-sm text-zinc-300 space-y-2">
+        <p><span class="text-zinc-500">Author:</span> <span id="bm-author"></span></p>
+        <p><span class="text-zinc-500">Rating:</span> <span id="bm-rating"></span></p>
+        <p><span class="text-zinc-500">Series:</span> <span id="bm-series"></span></p>
+        <p><span class="text-zinc-500">Read on:</span> <span id="bm-read_at"></span></p>
+        <p><span class="text-zinc-500">Review:</span> <span id="bm-liked"></span></p>
+      </div>
+    </div>
   </div>
 </section>
 
 <!-- INVENTORY -->
 <section id="tab-inventory" class="hidden space-y-6">
-  <div class="grid md:grid-cols-3 gap-6">
-    <div class="glass rounded-2xl p-6 md:col-span-2">
-      <h2 class="text-xl font-bold text-amber-300 mb-4">📦 Supply Matrix</h2>
-      <div class="space-y-2 max-h-[380px] overflow-y-auto pr-2" id="inventory-list">{% for item in inventory %}<div id="item-{{ item.id }}" class="flex items-center justify-between p-3 rounded-xl bg-white/[0.03] border border-white/10"><div><span class="font-medium text-zinc-100">{{ item.item_name }}</span><span class="ml-2 text-xs px-2 py-0.5 rounded border {{ 'text-red-400 bg-red-950/50 border-red-800' if item.quantity <= (item.min_quantity or 1) else 'text-emerald-400 bg-emerald-950/50 border-emerald-800' }}">Qty: {{ item.quantity }}</span></div><div class="flex gap-1"><button onclick="updateQty({{ item.id }},'sub')" class="w-8 h-8 rounded bg-zinc-700 hover:bg-zinc-600 text-zinc-200 font-bold">-</button><button onclick="updateQty({{ item.id }},'add')" class="w-8 h-8 rounded bg-zinc-700 hover:bg-zinc-600 text-zinc-200 font-bold">+</button></div></div>{% else %}<p class="text-zinc-500 text-sm italic">No inventory tracked yet.</p>{% endfor %}</div>
-    </div>
+
+  <!-- Sub-nav: Browse / Find / Add -->
+  <div class="flex gap-1 border-b border-white/10">
+    <button onclick="invShow('browse')" id="inv-nav-browse" class="inv-tab-active whitespace-nowrap px-4 py-2 text-sm font-semibold border-b-2 transition">🏠 Browse</button>
+    <button onclick="invShow('find')" id="inv-nav-find" class="inv-tab-inactive whitespace-nowrap px-4 py-2 text-sm font-semibold border-b-2 transition">🔍 Find Item</button>
+    <button onclick="invShow('add')" id="inv-nav-add" class="inv-tab-inactive whitespace-nowrap px-4 py-2 text-sm font-semibold border-b-2 transition">➕ Add</button>
+  </div>
+
+  <!-- BROWSE: locations → colors → boxes -->
+  <div id="inv-pane-browse" class="space-y-4">
     <div class="glass rounded-2xl p-6">
-      <h3 class="font-bold text-zinc-100 mb-3">Quick Add</h3>
-      <form onsubmit="event.preventDefault(); submitItem(this);" class="space-y-2"><input name="name" placeholder="Item name" class="w-full bg-zinc-900/70 border border-zinc-700 rounded-lg px-3 py-2 text-sm" required/><button type="submit" class="w-full bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold rounded-lg px-3 py-2">Add to Matrix</button></form>
+      <h2 class="text-xl font-bold text-amber-300 mb-1">🏠 Your Home</h2>
+      <p class="text-xs text-zinc-400 mb-4">Click a room → a tape color → a box to see what's inside.</p>
+      <div id="browse-tree" class="space-y-2 text-sm text-zinc-200">Loading…</div>
+    </div>
+    <div id="box-dossier" class="glass rounded-2xl p-6 hidden"></div>
+  </div>
+
+  <!-- FIND: fuzzy search -->
+  <div id="inv-pane-find" class="hidden space-y-4">
+    <div class="glass rounded-2xl p-6">
+      <h2 class="text-xl font-bold text-amber-300 mb-1">🔍 Find an Item</h2>
+      <p class="text-xs text-zinc-400 mb-4">Fuzzy match — "cast iron skillet" will find "Cast-Iron Frying Pan".</p>
+      <form id="find-form" onsubmit="event.preventDefault(); runFind(this);" class="flex gap-2 mb-4">
+        <input name="q" id="find-q" placeholder="What are you looking for?" class="flex-1 bg-zinc-900/70 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:border-amber-500" required/>
+        <button class="bg-amber-500 hover:bg-amber-400 text-zinc-950 font-extrabold px-5 py-2 rounded-lg shadow-lg shadow-amber-500/20">Find</button>
+      </form>
+      <div id="find-results" class="space-y-2 text-sm text-zinc-200">Type a query and hit Find.</div>
+    </div>
+  </div>
+
+  <!-- ADD: stash item in existing/new box -->
+  <div id="inv-pane-add" class="hidden space-y-4">
+    <div class="glass rounded-2xl p-6">
+      <h2 class="text-xl font-bold text-amber-300 mb-1">➕ Stash an Item</h2>
+      <p class="text-xs text-zinc-400 mb-4">Register a new box (or use an existing one) and drop an item in it.</p>
+      <form id="add-item-form" onsubmit="event.preventDefault(); submitItem(this);" class="grid md:grid-cols-2 gap-3">
+        <div class="md:col-span-2">
+          <label class="text-xs text-zinc-400">Item name</label>
+          <input name="name" placeholder="e.g. Cast Iron Skillet" class="w-full bg-zinc-900/70 border border-zinc-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-amber-500" required/>
+        </div>
+        <div>
+          <label class="text-xs text-zinc-400">Box ID</label>
+          <input name="box_id" placeholder="e.g. YELLOW-4 (or leave blank)" class="w-full bg-zinc-900/70 border border-zinc-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-amber-500"/>
+        </div>
+        <div>
+          <label class="text-xs text-zinc-400">Color code (tape)</label>
+          <input name="color_code" placeholder="e.g. Yellow, Green, Red" class="w-full bg-zinc-900/70 border border-zinc-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-amber-500"/>
+        </div>
+        <div>
+          <label class="text-xs text-zinc-400">Container type</label>
+          <input name="container_type" placeholder="e.g. Cardboard, Large Tote" class="w-full bg-zinc-900/70 border border-zinc-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-amber-500"/>
+        </div>
+        <div>
+          <label class="text-xs text-zinc-400">Theme</label>
+          <input name="theme" placeholder="e.g. Kitchen, Xmas Decor" class="w-full bg-zinc-900/70 border border-zinc-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-amber-500"/>
+        </div>
+        <div>
+          <label class="text-xs text-zinc-400">Location (room)</label>
+          <input name="location" placeholder="e.g. Garage, Shop, Attic" class="w-full bg-zinc-900/70 border border-zinc-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-amber-500"/>
+        </div>
+        <div>
+          <label class="text-xs text-zinc-400">Status</label>
+          <select name="status" class="w-full bg-zinc-900/70 border border-zinc-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-amber-500">
+            <option value="Active">Active</option>
+            <option value="Storage">Storage</option>
+            <option value="Yard Sale">Yard Sale</option>
+          </select>
+        </div>
+        <div class="md:col-span-2">
+          <button class="w-full bg-amber-500 hover:bg-amber-400 text-zinc-950 font-extrabold rounded-lg px-3 py-2 transition shadow-lg shadow-amber-500/20">Stash It</button>
+        </div>
+      </form>
+      <p id="add-item-status" class="text-xs text-zinc-300 mt-3 hidden"></p>
     </div>
   </div>
 </section>
@@ -124,7 +210,7 @@ body{font-family:'Inter',system-ui,sans-serif;background:#0b0a09;color:#fafaf9}
   </div>
 </section>
 
-<footer class="mt-12 pt-6 border-t border-white/10 text-xs text-zinc-500 flex flex-col md:flex-row gap-2 items-center"><span>Built for the Wood family · PWA ready · Deployed-ready for Vercel</span><span>Install app from Chrome menu for offline mode.</span></footer>
+<footer class="mt-12 pt-6 border-t border-white/10 text-xs text-zinc-500 flex flex-col md:flex-row gap-2 items-center"><span>Built for the Wood family · PWA ready ·</span></footer>
 
 </div>
 
@@ -144,15 +230,21 @@ function showTab(name){
 // ─── AI recommendation ──────────────────────────────────────────────────────
 function fetchRec(){
   const out=document.getElementById('rec-output');
+  const input=document.getElementById('rec-input');
+  const seed=input ? input.value.trim() : '';
   out.innerText='Consulting Ollama...';
-  fetch('/api/recommend_book',{method:'POST'}).then(r=>r.text()).then(html=>{const tmp=document.createElement('div');tmp.innerHTML=html;out.innerText=tmp.textContent||tmp.innerText||'No response.';});
+  fetch('/api/recommend_book',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'seed_title='+encodeURIComponent(seed)})
+    .then(r=>r.text()).then(html=>{const tmp=document.createElement('div');tmp.innerHTML=html;out.innerText=tmp.textContent||tmp.innerText||'No response.';});
 }
 
+function openBookModal(el){ const b=el.dataset; document.getElementById('bm-title').textContent=b.title; document.getElementById('bm-author').textContent=b.author; document.getElementById('bm-rating').textContent=b.rating; document.getElementById('bm-series').textContent=b.series; document.getElementById('bm-read_at').textContent=b.read_at; document.getElementById('bm-liked').textContent=b.liked; const m=document.getElementById('book-modal'); m.classList.remove('hidden'); m.classList.add('flex'); }
+document.addEventListener('click', e => { const c = e.target.closest('.book-card'); if (c) openBookModal(c); });
+function closeModal(e){ if(e && e.target!==document.getElementById('book-modal')) return; const m=document.getElementById('book-modal'); m.classList.add('hidden'); m.classList.remove('flex'); }
 // ─── Submit book ────────────────────────────────────────────────────────────
 function submitBook(form){
   const btn=form.querySelector('button');
   btn.innerText='Saving...';
-  const data={user:form.user.value, title:form.title.value, author:form.author.value, rating:form.rating.value};
+  const data={user:form.user.value, title:form.title.value, author:form.author.value, rating:form.rating.value, review:form.review ? form.review.value : ''};
   fetch('/api/book/add',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:Object.entries(data).map(([k,v])=>encodeURIComponent(k)+'='+encodeURIComponent(v)).join('&')})
     .then(r=>r.json()).then(d=>{
       btn.innerText='Log It to the Vault';
@@ -161,13 +253,193 @@ function submitBook(form){
       document.getElementById('add-book-status').classList.remove('hidden');
     }).catch(e=>{btn.innerText='Log It to the Vault'; alert('Save failed');});
 }
-function submitItem(form){form.reset();alert('Item added (connect POST endpoint to persist)');}
+function submitItem(formOrEvent){
+  const form = formOrEvent.target || formOrEvent;
+  if (formOrEvent.preventDefault) formOrEvent.preventDefault();
+  const status = document.getElementById('add-item-status');
+  const data = new FormData(form);
+  const btn = form.querySelector('button');
+  btn.innerText = 'Stashing…'; btn.disabled = true;
+  fetch('/api/inventory/add', {method:'POST', body: data})
+    .then(r=>r.json())
+    .then(d=>{
+      btn.innerText = 'Stash It'; btn.disabled = false;
+      if (d.status === 'ok' || d.status === 'exists') {
+        status.textContent = '✅ Stashed "' + data.get('name') + '" in box ' + data.get('box_id') + '.';
+        status.classList.remove('hidden');
+        form.reset();
+        loadBrowseTree();
+      } else {
+        status.textContent = '⚠️ ' + (d.message || 'Save failed');
+        status.classList.remove('hidden');
+      }
+    })
+    .catch(err=>{ btn.innerText = 'Stash It'; btn.disabled = false; status.textContent='⚠️ Network error'; status.classList.remove('hidden'); });
+}
 
-// ─── Inventory quantity (uses existing HTMX-style endpoint) ───────────────────
-function updateQty(id,action){
-  fetch('/api/inventory/update',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'item_id='+id+'&action='+action}).then(r=>r.text()).then(html=>{
-    const el=document.getElementById('item-'+id);if(el){const tmp=document.createElement('div');tmp.innerHTML=html;el.replaceWith(tmp.firstElementChild);}
+// ─── Inventory 2.0: Browse / Find / Add ──────────────────────────────────────
+const COLOR_SWATCH = {
+  'red':'bg-red-500', 'green':'bg-emerald-500', 'yellow':'bg-yellow-400', 'blue':'bg-sky-500',
+  'orange':'bg-orange-500', 'purple':'bg-purple-500', 'pink':'bg-pink-500', 'white':'bg-zinc-100',
+  'black':'bg-zinc-900'
+};
+function colorSwatch(name){
+  if(!name) return 'bg-zinc-600';
+  const k = name.toLowerCase().split(/[\s-]/)[0];
+  return COLOR_SWATCH[k] || 'bg-zinc-600';
+}
+
+function invShow(pane){
+  ['browse','find','add'].forEach(p=>{
+    document.getElementById('inv-pane-'+p).classList.add('hidden');
+    document.getElementById('inv-nav-'+p).classList.remove('inv-tab-active');
+    document.getElementById('inv-nav-'+p).classList.add('inv-tab-inactive');
   });
+  document.getElementById('inv-pane-'+pane).classList.remove('hidden');
+  document.getElementById('inv-nav-'+pane).classList.add('inv-tab-active');
+  document.getElementById('inv-nav-'+pane).classList.remove('inv-tab-inactive');
+  if (pane === 'browse') loadBrowseTree();
+}
+
+function loadBrowseTree(){
+  const el = document.getElementById('browse-tree');
+  el.innerHTML = '<p class="text-zinc-500 italic">Loading…</p>';
+  fetch('/api/inventory/browse').then(r=>r.json()).then(tree=>{
+    const locs = Object.keys(tree);
+    if (locs.length === 0){
+      el.innerHTML = '<p class="text-zinc-500 italic">No boxes yet. Use the Add tab to register your first box.</p>';
+      return;
+    }
+    el.innerHTML = '';
+    locs.forEach(loc => {
+      const colors = Object.keys(tree[loc]);
+      const totalBoxes = colors.reduce((n,c)=>n+tree[loc][c].length, 0);
+      const details = document.createElement('details');
+      details.className = 'bg-white/[0.03] border border-white/10 rounded-xl p-3';
+      details.open = locs.length <= 2; // auto-open if few rooms
+      details.innerHTML = `
+        <summary class="cursor-pointer font-semibold text-amber-200 flex items-center justify-between">
+          <span>📍 ${escapeHtml(loc)}</span>
+          <span class="text-xs text-zinc-400">${totalBoxes} box${totalBoxes!==1?'es':''} · ${colors.length} color${colors.length!==1?'s':''}</span>
+        </summary>
+        <div class="mt-3 space-y-2 pl-3 border-l border-white/10">
+          ${colors.map(col => `
+            <details class="bg-zinc-900/40 rounded-lg p-2">
+              <summary class="cursor-pointer flex items-center gap-2 text-zinc-100">
+                <span class="inline-block w-3 h-3 rounded-full ${colorSwatch(col)} ring-1 ring-white/20"></span>
+                <span class="font-medium">${escapeHtml(col)} tape</span>
+                <span class="text-xs text-zinc-400">· ${tree[loc][col].length} box${tree[loc][col].length!==1?'es':''}</span>
+              </summary>
+              <div class="mt-2 space-y-1 pl-4">
+                ${tree[loc][col].map(b => `
+                  <button data-box="${escapeAttr(b.box_id)}" class="open-box w-full text-left p-2 rounded-lg bg-zinc-800/60 hover:bg-zinc-700/60 border border-white/5 text-sm">
+                    <div class="font-semibold text-zinc-100">📦 ${escapeHtml(b.box_id)}</div>
+                    <div class="text-xs text-zinc-400">${escapeHtml(b.container_type)} · ${escapeHtml(b.theme)} · ${escapeHtml(b.status)} · ${b.item_count} item${b.item_count!==1?'s':''}</div>
+                  </button>
+                `).join('')}
+              </div>
+            </details>
+          `).join('')}
+        </div>`;
+      el.appendChild(details);
+    });
+    el.querySelectorAll('.open-box').forEach(btn => {
+      btn.addEventListener('click', () => openBox(btn.dataset.box));
+    });
+  }).catch(()=>{ el.innerHTML = '<p class="text-red-400">Failed to load inventory.</p>'; });
+}
+
+function openBox(box_id){
+  const d = document.getElementById('box-dossier');
+  d.classList.remove('hidden');
+  d.innerHTML = '<p class="text-zinc-500 italic">Loading…</p>';
+  fetch('/api/inventory/box/'+encodeURIComponent(box_id))
+    .then(r=>r.json())
+    .then(b=>{
+      if (b.error){ d.innerHTML = '<p class="text-red-400">'+escapeHtml(b.error)+'</p>'; return; }
+      const itemList = b.items.length
+      ? `<ul class="list-disc pl-5 space-y-1 text-zinc-200">${b.items.map(i=>`<li class="flex items-center justify-between"><span>${escapeHtml(i.item_name)}</span><button onclick="deleteItem(${i.id},'${escapeAttr(i.item_name)}')" class="ml-2 text-xs text-red-400 hover:text-red-300">Remove</button></li>`).join('')}</ul>`
+      : '<p class="text-zinc-500 italic">Empty box.</p>';
+      d.innerHTML = `
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="text-lg font-bold text-amber-300">📦 ${escapeHtml(b.box_id)}</h3>
+          <button onclick="deleteBox(document.querySelector('#box-dossier h3').textContent.replace('📦 ','').trim())" class="text-xs text-red-400 hover:text-red-300">Remove box</button> <button onclick="document.getElementById('box-dossier').classList.add('hidden')" class="text-xs text-zinc-400 hover:text-zinc-200">close</button>
+        </div>
+        <div class="grid sm:grid-cols-2 gap-2 text-sm mb-4">
+          <div><span class="text-zinc-400">Location:</span> <span class="text-zinc-100">${escapeHtml(b.location || 'Unassigned')}</span></div>
+          <div><span class="text-zinc-400">Color tape:</span> <span class="inline-flex items-center gap-1 text-zinc-100"><span class="inline-block w-3 h-3 rounded-full ${colorSwatch(b.color_code)} ring-1 ring-white/20"></span>${escapeHtml(b.color_code || 'Untagged')}</span></div>
+          <div><span class="text-zinc-400">Container:</span> <span class="text-zinc-100">${escapeHtml(b.container_type || '—')}</span></div>
+          <div><span class="text-zinc-400">Theme:</span> <span class="text-zinc-100">${escapeHtml(b.theme || '—')}</span></div>
+          <div><span class="text-zinc-400">Status:</span> <span class="text-zinc-100">${escapeHtml(b.status || '—')}</span></div>
+          <div><span class="text-zinc-400">Items:</span> <span class="text-zinc-100">${b.items.length}</span></div>
+        </div>
+        <div class="border-t border-white/10 pt-3">
+          <h4 class="text-sm font-semibold text-zinc-300 mb-2">Contents</h4>
+          ${itemList}
+        </div>`;
+    })
+    .catch(()=>{ d.innerHTML = '<p class="text-red-400">Failed to load box.</p>'; });
+}
+
+function runFind(formOrEvent){
+  if (formOrEvent && formOrEvent.preventDefault) formOrEvent.preventDefault();
+  const q = document.getElementById('find-q').value.trim();
+  const out = document.getElementById('find-results');
+  if (!q){ return; }
+  out.innerHTML = '<p class="text-zinc-500 italic">Searching…</p>';
+  fetch('/api/inventory/find?q='+encodeURIComponent(q))
+    .then(r=>r.json())
+    .then(data=>{
+      if (!data.matches.length){
+        out.innerHTML = `<p class="text-zinc-500 italic">Nothing in the matrix looks like "${escapeHtml(data.query)}".</p>`;
+        return;
+      }
+      out.innerHTML = `<p class="text-xs text-zinc-400 mb-2">${data.matches.length} match${data.matches.length!==1?'es':''} for "${escapeHtml(data.query)}"</p>` +
+        data.matches.map(m => renderItemCard(m, data.query)).join('');
+    })
+    .catch(()=>{ out.innerHTML = '<p class="text-red-400">Search failed.</p>'; });
+}
+
+function renderItemCard(m, q){
+  const where = m.location || 'Unassigned';
+  const color = m.color_code || 'Untagged';
+  const ctype = (m.container_type || 'container').toLowerCase();
+  const desc = `In a <span class="text-amber-300 font-semibold">${escapeHtml(color.toLowerCase())}</span> ${escapeHtml(ctype)}, located in <span class="text-amber-300 font-semibold">${escapeHtml(where)}</span>.`;
+  return `
+    <div class="p-3 rounded-xl bg-white/[0.04] border border-white/10">
+      <div class="font-semibold text-zinc-100">${escapeHtml(m.item_name)}</div>
+      <div class="text-sm text-zinc-300 mt-1">${desc}</div>
+      <div class="text-xs text-zinc-400 mt-1">📦 ${escapeHtml(m.box_id)} · ${escapeHtml(m.theme || '—')} · ${escapeHtml(m.status || 'Active')}</div>
+      <button onclick="openBox('${escapeAttr(m.box_id)}')" class="mt-2 text-xs text-amber-300 hover:text-amber-200 underline">Open box →</button>
+    </div>`;
+}
+
+function escapeHtml(s){ return (s==null?'':String(s)).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function escapeAttr(s){ return escapeHtml(s).replace(/`/g,'&#96;'); }
+
+function deleteBox(box_id){
+  if (!confirm('Delete container '+box_id+' and all its items?')) return;
+  fetch('/api/inventory/box/delete', {method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body:'box_id='+encodeURIComponent(box_id)})
+    .then(r=>r.json()).then(d=>{ loadBrowseTree(); document.getElementById('box-dossier').classList.add('hidden'); })
+    .catch(()=>alert('Failed to delete box.'));
+}
+function deleteItem(id, name){
+  if (!confirm('Remove "'+name+'" from the matrix?')) return;
+  fetch('/api/inventory/item/delete', {method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body:'id='+id})
+    .then(r=>r.json())
+    .then(d=>{
+      if (d.status === 'ok'){
+        // Find which box this item lived in by looking at the dossier header
+        const dossier = document.getElementById('box-dossier');
+        const boxHeader = dossier.querySelector('h3');
+        const box_id = boxHeader ? boxHeader.textContent.replace('📦 ','').trim() : '';
+        if (box_id) openBox(box_id); // refresh the dossier
+        loadBrowseTree(); // refresh the tree counts
+      } else {
+        alert('Could not remove item.');
+      }
+    })
+    .catch(()=>alert('Network error.'));
 }
 
 // ─── Movie filter (calls new endpoint) ───────────────────────────────────────

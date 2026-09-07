@@ -2,12 +2,15 @@ import os
 import sqlite3
 import json
 import aiohttp
-from fastapi import FastAPI, Request, Form, HTTPException
+from fastapi import FastAPI, Request, Form, HTTPException, Header
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse, FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 import uvicorn
+from dotenv import load_dotenv
+load_dotenv()
 
+URL_KEY = os.getenv("URL_KEY") 
 app = FastAPI(title="DaddyBot Command Center")
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -26,9 +29,48 @@ def row_to_dict(row):
         return {}
     return {k: row[k] for k in row.keys()}
 
+def init_db():
+    """Ensure read_books has a read_at timestamp column."""
+    conn = get_db()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("ALTER TABLE read_books ADD COLUMN read_at TEXT")
+        conn.commit()
+    except sqlite3.OperationalError:
+        pass  # column already exists
+    finally:
+        conn.close()
+
 # ─── Main dashboard ──────────────────────────────────────────────────────────
+# ─── Auth Middleware ─────────────────────────────────────────────────────────
+@app.middleware("http")
+async def check_secret_key(request: Request, call_next):
+    # Always allow static files (PWA icons/styles)
+    if request.url.path.startswith("/static"):
+        return await call_next(request)
+
+    # Check key from URL parameter OR saved browser cookie
+    provided_key = request.query_params.get("key") or request.cookies.get("daddy_auth")
+
+    # Lock down if URL_KEY isn't set in .env OR provided key is wrong
+    if not URL_KEY or provided_key != URL_KEY:
+        return HTMLResponse(
+            "<h1 style='color:red;text-align:center;margin-top:20%'>403 Forbidden</h1>"
+            "<p style='color:gray;text-align:center'>Invalid or missing key parameter.</p>",
+            status_code=403
+        )
+
+    response = await call_next(request)
+
+    # If accessed via ?key=..., save a cookie so app buttons and future visits work automatically
+    if request.query_params.get("key") == URL_KEY:
+        response.set_cookie(key="daddy_auth", value=URL_KEY, max_age=31536000)  # 1 year
+
+    return response
+
 @app.get("/", response_class=HTMLResponse)
 async def main_dashboard(request: Request):
+    init_db()
     conn = get_db()
     cursor = conn.cursor()
 
@@ -48,9 +90,14 @@ async def main_dashboard(request: Request):
     except sqlite3.OperationalError:
         pass
 
-    # Inventory items (could be shared or per user - now shared)
+    # Inventory items (join items with their boxes)
     try:
-        cursor.execute("SELECT * FROM inventory ORDER BY item_name ASC")
+        cursor.execute("""
+            SELECT i.id, i.item_name, i.box_id, b.color_code, b.container_type, b.theme, b.location, b.status
+            FROM items i
+            LEFT JOIN boxes b ON b.box_id = i.box_id
+            ORDER BY i.item_name ASC
+        """)
         inventory = [row_to_dict(r) for r in cursor.fetchall()]
     except sqlite3.OperationalError:
         pass
@@ -134,7 +181,7 @@ async def update_inventory(item_id: int = Form(...), action: str = Form(...)):
 
 # ─── Add book ────────────────────────────────────────────────────────────────
 @app.post("/api/book/add")
-async def add_book(title: str = Form(...), author: str = Form(""), rating: str = Form(""), user: str = Form("")):
+async def add_book(title: str = Form(...), author: str = Form(""), rating: str = Form(""), review: str = Form(""), user: str = Form("")):
     conn = get_db()
     cursor = conn.cursor()
     user_map = {
@@ -143,9 +190,11 @@ async def add_book(title: str = Form(...), author: str = Form(""), rating: str =
     }
     db_user = user_map.get(user, user)
     try:
+        from datetime import datetime, timezone
+        now = datetime.now(timezone.utc).strftime("%Y-%m-%d")
         cursor.execute(
-            "INSERT OR IGNORE INTO read_books (user_name, book_title, author, rating) VALUES (?, ?, ?, ?)",
-            (db_user, title.strip(), author.strip(), int(rating) if rating.isdigit() else None)
+            "INSERT OR IGNORE INTO read_books (user_name, book_title, author, rating, read_at, what_i_liked) VALUES (?, ?, ?, ?, ?, ?)",
+            (db_user, title.strip(), author.strip(), int(rating) if rating.isdigit() else None, now, review.strip() or None)
         )
         conn.commit()
         result = "ok"
@@ -157,35 +206,224 @@ async def add_book(title: str = Form(...), author: str = Form(""), rating: str =
 
 # ─── Add inventory item ─────────────────────────────────────────────────────
 @app.post("/api/inventory/add")
-async def add_item(name: str = Form(...), box_id: str = Form("UNLABELED")):
+async def add_item(
+    name: str = Form(...),
+    box_id: str = Form("UNLABELED"),
+    color_code: str = Form(""),
+    container_type: str = Form(""),
+    theme: str = Form(""),
+    location: str = Form(""),
+    status: str = Form("Active"),
+):
+    box_id = box_id.strip().upper() or "UNLABELED"
     conn = get_db()
     cursor = conn.cursor()
-    # Ensure box exists (simplified — create a basic box if missing)
     try:
+        # Ensure the box exists; create it with whatever details were provided
         cursor.execute("SELECT 1 FROM boxes WHERE box_id = ?", (box_id,))
         if not cursor.fetchone():
-            cursor.execute("INSERT INTO boxes (box_id, theme, status) VALUES (?, ?, ?)", (box_id, "General", "Active"))
-        cursor.execute("INSERT INTO items (item_name, box_id) VALUES (?, ?)", (name, box_id))
+            cursor.execute(
+                """INSERT INTO boxes (box_id, color_code, container_type, theme, location, status)
+                   VALUES (?, ?, ?, ?, ?, ?)""",
+                (box_id, color_code or None, container_type or None, theme or None, location or None, status or "Active"),
+            )
+        else:
+            # Update any fields that were provided
+            updates = []
+            params = []
+            if color_code:
+                updates.append("color_code = ?"); params.append(color_code)
+            if container_type:
+                updates.append("container_type = ?"); params.append(container_type)
+            if theme:
+                updates.append("theme = ?"); params.append(theme)
+            if location:
+                updates.append("location = ?"); params.append(location)
+            if status:
+                updates.append("status = ?"); params.append(status)
+            if updates:
+                params.append(box_id)
+                cursor.execute(f"UPDATE boxes SET {', '.join(updates)} WHERE box_id = ?", params)
+
+        cursor.execute("INSERT INTO items (item_name, box_id) VALUES (?, ?)", (name.strip(), box_id))
+        conn.commit()
+        return JSONResponse({"status": "ok", "item": name, "box_id": box_id})
+    except Exception as e:
+        return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
+    finally:
+        conn.close()
+
+# ─── Inventory: browse, locate, find ─────────────────────────────────────────
+import difflib
+
+@app.get("/api/inventory/browse")
+async def inventory_browse():
+    """Return nested tree: location -> color -> [boxes]"""
+    conn = get_db()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("""
+            SELECT b.box_id, b.color_code, b.container_type, b.theme, b.location, b.status,
+                   COUNT(i.id) AS item_count
+            FROM boxes b
+            LEFT JOIN items i ON i.box_id = b.box_id
+            GROUP BY b.box_id
+            ORDER BY COALESCE(b.location, 'Unassigned') ASC,
+                     COALESCE(b.color_code, 'Untagged') ASC,
+                     b.box_id ASC
+        """)
+        rows = [row_to_dict(r) for r in cursor.fetchall()]
+    except sqlite3.OperationalError:
+        rows = []
+    finally:
+        conn.close()
+
+    # Nest: location -> color -> [boxes]
+    tree = {}
+    for r in rows:
+        loc = r.get("location") or "Unassigned"
+        col = r.get("color_code") or "Untagged"
+        tree.setdefault(loc, {}).setdefault(col, []).append({
+            "box_id": r["box_id"],
+            "container_type": r.get("container_type") or "Unknown",
+            "theme": r.get("theme") or "—",
+            "status": r.get("status") or "Active",
+            "item_count": r.get("item_count", 0),
+        })
+    return JSONResponse(tree)
+
+
+@app.get("/api/inventory/box/{box_id}")
+async def inventory_box(box_id: str):
+    """Full dossier for a single box + all its items."""
+    box_id = box_id.strip().upper()
+    conn = get_db()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("""
+            SELECT box_id, color_code, container_type, theme, location, status
+            FROM boxes WHERE box_id = ?
+        """, (box_id,))
+        box = cursor.fetchone()
+        if not box:
+            return JSONResponse({"error": f"Box {box_id} not found"}, status_code=404)
+        box_d = row_to_dict(box)
+
+        cursor.execute("SELECT id, item_name FROM items WHERE box_id = ? ORDER BY item_name ASC", (box_id,))
+        items = [row_to_dict(r) for r in cursor.fetchall()]
+    finally:
+        conn.close()
+
+    box_d["items"] = items
+    return JSONResponse(box_d)
+
+
+@app.get("/api/inventory/find")
+async def inventory_find(q: str = ""):
+    """Fuzzy search: difflib ranks all items against query, returns top matches with full context."""
+    q = (q or "").strip().lower()
+    if not q:
+        return JSONResponse({"query": "", "matches": []})
+
+    conn = get_db()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("""
+            SELECT i.item_name, b.box_id, b.color_code, b.container_type,
+                   b.theme, b.location, b.status
+            FROM items i
+            JOIN boxes b ON b.box_id = i.box_id
+        """)
+        rows = [row_to_dict(r) for r in cursor.fetchall()]
+    finally:
+        conn.close()
+
+    # Score each row against the query using difflib on item name
+    scored = []
+    for r in rows:
+        name = (r.get("item_name") or "").lower()
+        # Direct substring match wins big
+        ratio = difflib.SequenceMatcher(None, q, name).ratio()
+        # Bonus for word-overlap (handles "cast iron skillet" vs "cast-iron frying pan")
+        q_words = set(q.replace("-", " ").split())
+        n_words = set(name.replace("-", " ").split())
+        overlap = len(q_words & n_words) / max(len(q_words), 1)
+        score = max(ratio, overlap * 0.85)
+        if q in name:
+            score = max(score, 0.95)  # substring = near-perfect
+        scored.append((score, r))
+
+    scored.sort(key=lambda x: x[0], reverse=True)
+    top = [r for s, r in scored[:20] if s > 0.25]  # filter weak matches
+    return JSONResponse({"query": q, "matches": top})
+
+
+# ─── Create box (matches Discord cog's guided flow) ──────────────────────────
+@app.post("/api/inventory/box")
+async def create_box(
+    box_id: str = Form(...),
+    color_code: str = Form(""),
+    container_type: str = Form(""),
+    theme: str = Form(""),
+    location: str = Form(""),
+    status: str = Form("Active"),
+):
+    box_id = box_id.strip().upper()
+    if not box_id:
+        return JSONResponse({"status": "error", "message": "box_id required"}, status_code=400)
+    conn = get_db()
+    cursor = conn.cursor()
+    try:
+        cursor.execute(
+            """INSERT INTO boxes (box_id, color_code, container_type, theme, location, status)
+               VALUES (?, ?, ?, ?, ?, ?)""",
+            (box_id, color_code or None, container_type or None, theme or None, location or None, status or "Active"),
+        )
+        conn.commit()
+        return JSONResponse({"status": "ok", "box_id": box_id})
+    except sqlite3.IntegrityError:
+        return JSONResponse({"status": "exists", "box_id": box_id})
+    except Exception as e:
+        return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
+    finally:
+        conn.close()
+
+
+# ─── Delete box / container ─────────────────────────────────────────────────────
+@app.post("/api/inventory/box/delete")
+async def delete_inventory_box(box_id: str = Form(...)):
+    conn = get_db()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("DELETE FROM boxes WHERE box_id = ?", (box_id,))
         conn.commit()
     finally:
         conn.close()
-    return JSONResponse({"status": "ok", "item": name, "box_id": box_id})
+    return JSONResponse({"status": "ok"})
 
 # ─── AI book recommendation ──────────────────────────────────────────────────
 @app.post("/api/recommend_book", response_class=HTMLResponse)
-async def recommend_book():
+async def recommend_book(seed_title: str = Form("")):
     conn = get_db()
     cursor = conn.cursor()
     history = []
     try:
-        cursor.execute("SELECT title, author FROM read_books LIMIT 5")
-        history = [f"{r['title']} by {r['author']}" for r in cursor.fetchall()]
+        cursor.execute("SELECT book_title, author FROM read_books ORDER BY id DESC LIMIT 10")
+        history = [f"{r['book_title']} by {r['author']}" for r in cursor.fetchall()]
     except Exception:
         pass
     conn.close()
 
     history_str = ", ".join(history) if history else "Sci-Fi and Tech classics"
-    prompt = f"Based on these books: {history_str}. Recommend 1 fantastic book. Give title, author, and 2 punchy sentences why. No markdown headers or bullet points."
+    
+    if seed_title.strip():
+        prompt = f"""Based on the user's library: {history_str}.
+
+The user just read or is interested in: "{seed_title}".
+
+Recommend 5 books they'd love. For each: title, author, and 1-2 punchy sentences why it fits. No markdown headers, no bullet points, just clean numbered list."""
+    else:
+        prompt = f"""Based on these books: {history_str}. Recommend 5 fantastic books they'd love. For each: title, author, and 1-2 punchy sentences why. No markdown headers or bullet points, just a clean numbered list."""
 
     try:
         async with aiohttp.ClientSession() as session:
@@ -204,10 +442,23 @@ async def recommend_book():
 
     return f'''
     <div class="p-4 bg-indigo-950/40 border border-indigo-800/60 rounded-lg text-indigo-200 text-sm leading-relaxed">
-        <div class="font-bold text-indigo-400 mb-1">🤖 Ollama Recommendation:</div>
+        <div class="font-bold text-indigo-400 mb-1">🤖 Ollama Recommendations:</div>
         {rec_text}
     </div>
     '''
+
+# ─── Inventory: remove item ────────────────────────────────────────────────────
+@app.post("/api/inventory/item/delete")
+async def delete_inventory_item(id: int = Form(...)):
+    conn = get_db()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("DELETE FROM items WHERE id = ?", (id,))
+        conn.commit()
+        deleted = cursor.rowcount > 0
+    finally:
+        conn.close()
+    return JSONResponse({"status": "ok" if deleted else "not_found", "deleted_rows": cursor.rowcount})
 
 # ─── Movie family-filter evaluation ──────────────────────────────────────────
 @app.post("/api/movie/evaluate", response_class=HTMLResponse)
@@ -288,4 +539,4 @@ async def stats_api():
     return JSONResponse(results)
 
 if __name__ == "__main__":
-    uvicorn.run("dashboard:app", host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run("dashboard:app", host="0.0.0.0", port=8001, reload=True)

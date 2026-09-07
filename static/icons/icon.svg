@@ -1,20 +1,131 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
   <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#0c0a09"/>
-      <stop offset="1" stop-color="#1c1917"/>
-    </linearGradient>
-    <linearGradient id="bolt" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#fde68a"/>
-      <stop offset="0.5" stop-color="#f59e0b"/>
-      <stop offset="1" stop-color="#b45309"/>
-    </linearGradient>
-    <radialGradient id="glow" cx="0.5" cy="0.5" r="0.5">
-      <stop offset="0" stop-color="#f59e0b" stop-opacity="0.4"/>
-      <stop offset="1" stop-color="#f59e0b" stop-opacity="0"/>
+    <!-- Background Gradient -->
+    <radialGradient id="bgGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#1e293b"/>
+      <stop offset="100%" stop-color="#090d16"/>
     </radialGradient>
+
+    <!-- Metallic Body Gradients -->
+    <linearGradient id="metalDark" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#475569"/>
+      <stop offset="50%" stop-color="#334155"/>
+      <stop offset="100%" stop-color="#1e293b"/>
+    </linearGradient>
+
+    <linearGradient id="metalLight" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#94a3b8"/>
+      <stop offset="50%" stop-color="#64748b"/>
+      <stop offset="100%" stop-color="#334155"/>
+    </linearGradient>
+
+    <linearGradient id="goldAccent" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fde047"/>
+      <stop offset="100%" stop-color="#d97706"/>
+    </linearGradient>
+
+    <!-- Bright Blue Neon Eye & Glow -->
+    <filter id="neonGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="6" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <linearGradient id="blueEye" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8"/>
+      <stop offset="100%" stop-color="#0284c7"/>
+    </linearGradient>
   </defs>
-  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
-  <circle cx="256" cy="256" r="220" fill="url(#glow)"/>
-  <path d="M276 64 L140 280 L232 280 L196 448 L372 232 L280 232 Z" fill="url(#bolt)" stroke="#0c0a09" stroke-width="6" stroke-linejoin="round"/>
+
+  <!-- Background Shield Badge -->
+  <circle cx="256" cy="256" r="240" fill="url(#bgGlow)" stroke="#38bdf8" stroke-width="4" stroke-opacity="0.4"/>
+  <circle cx="256" cy="256" r="230" fill="none" stroke="#f59e0b" stroke-width="2" stroke-dasharray="12 6" stroke-opacity="0.6"/>
+
+  <!-- BACK MUSCLES / TRAPS -->
+  <path d="M160 260 Q256 200 352 260 L380 340 H132 Z" fill="url(#metalDark)"/>
+
+  <!-- FLEXED ARMS (BUFF BICEPS) -->
+  <!-- Left Flexed Arm (Viewer's Left) -->
+  <g id="left-arm">
+    <!-- Forearm flexing up -->
+    <path d="M90 280 Q60 200 110 140 Q150 120 160 170 Q140 230 110 290 Z" fill="url(#metalLight)" stroke="#0f172a" stroke-width="3"/>
+    <!-- Massive Bicep Peak -->
+    <path d="M120 220 Q110 150 165 160 Q200 180 180 230 Q150 250 120 220 Z" fill="url(#metalLight)" stroke="#1e293b" stroke-width="3"/>
+    <path d="M140 180 Q160 165 175 190" fill="none" stroke="#38bdf8" stroke-width="3" stroke-linecap="round" filter="url(#neonGlow)"/>
+    <!-- Fist -->
+    <circle cx="105" cy="135" r="28" fill="url(#metalDark)" stroke="#0f172a" stroke-width="3"/>
+  </g>
+
+  <!-- Right Flexed Arm (Viewer's Right) -->
+  <g id="right-arm">
+    <!-- Forearm flexing up -->
+    <path d="M422 280 Q452 200 402 140 Q362 120 352 170 Q372 230 402 290 Z" fill="url(#metalLight)" stroke="#0f172a" stroke-width="3"/>
+    <!-- Massive Bicep Peak -->
+    <path d="M392 220 Q402 150 347 160 Q312 180 332 230 Q362 250 392 220 Z" fill="url(#metalLight)" stroke="#1e293b" stroke-width="3"/>
+    <path d="M372 180 Q352 165 337 190" fill="none" stroke="#38bdf8" stroke-width="3" stroke-linecap="round" filter="url(#neonGlow)"/>
+    <!-- Fist -->
+    <circle cx="407" cy="135" r="28" fill="url(#metalDark)" stroke="#0f172a" stroke-width="3"/>
+  </g>
+
+  <!-- SHIRTLESS TORSO (CHEST & ABS) -->
+  <!-- Pecs -->
+  <path d="M165 270 Q256 280 256 340 Q180 350 150 310 Z" fill="url(#metalLight)" stroke="#0f172a" stroke-width="3"/>
+  <path d="M347 270 Q256 280 256 340 Q332 350 362 310 Z" fill="url(#metalLight)" stroke="#0f172a" stroke-width="3"/>
+  
+  <!-- Pec Highlights / Cyber Lines -->
+  <path d="M180 290 L240 295" stroke="#38bdf8" stroke-width="2" stroke-linecap="round" filter="url(#neonGlow)"/>
+  <path d="M332 290 L272 295" stroke="#38bdf8" stroke-width="2" stroke-linecap="round" filter="url(#neonGlow)"/>
+
+  <!-- 6-Pack Abs -->
+  <g id="abs" fill="url(#metalDark)" stroke="#0f172a" stroke-width="2">
+    <!-- Top abdominal plates -->
+    <rect x="210" y="350" width="40" height="30" rx="6"/>
+    <rect x="262" y="350" width="40" height="30" rx="6"/>
+    <!-- Middle abdominal plates -->
+    <rect x="214" y="386" width="36" height="28" rx="6"/>
+    <rect x="262" y="386" width="36" height="28" rx="6"/>
+    <!-- Lower abdominal plates -->
+    <rect x="220" y="420" width="30" height="25" rx="5"/>
+    <rect x="262" y="420" width="30" height="25" rx="5"/>
+  </g>
+
+  <!-- Daddy Belt / Gold Accent Waistband -->
+  <path d="M190 450 H322 L310 480 H202 Z" fill="url(#goldAccent)" stroke="#0f172a" stroke-width="3"/>
+  <text x="256" y="472" font-family="'Orbitron', sans-serif" font-weight="900" font-size="16" fill="#0f172a" text-anchor="middle">DADDY</text>
+
+  <!-- NECK & HEAD -->
+  <!-- Hydraulic Neck -->
+  <rect x="232" y="210" width="48" height="60" rx="8" fill="url(#metalDark)" stroke="#0f172a" stroke-width="3"/>
+  <line x1="244" y1="220" x2="244" y2="260" stroke="#38bdf8" stroke-width="3" filter="url(#neonGlow)"/>
+  <line x1="268" y1="220" x2="268" y2="260" stroke="#38bdf8" stroke-width="3" filter="url(#neonGlow)"/>
+
+  <!-- Head Chassis -->
+  <path d="M180 130 Q180 80 256 80 Q332 80 332 130 V190 Q332 220 256 225 Q180 220 180 190 Z" fill="url(#metalLight)" stroke="#0f172a" stroke-width="4"/>
+  
+  <!-- Jaw / Chin Plate -->
+  <path d="M200 185 L256 215 L312 185 V170 H200 Z" fill="url(#metalDark)" stroke="#0f172a" stroke-width="2"/>
+
+  <!-- EYES SECTION (BRIGHT BLUE & WINKING) -->
+  <!-- Visor / Eye Socket Frame -->
+  <path d="M195 125 H317 V160 H195 Z" fill="#090d16" rx="8" stroke="#334155" stroke-width="2"/>
+
+  <!-- Left Eye: OPEN & GLOWING BRIGHT NEON BLUE -->
+  <circle cx="225" cy="142" r="14" fill="url(#blueEye)" filter="url(#neonGlow)"/>
+  <circle cx="225" cy="142" r="6" fill="#ffffff" filter="url(#neonGlow)"/>
+  <circle cx="221" cy="138" r="3" fill="#ffffff"/>
+
+  <!-- Right Eye: PLAYFUL WINK (Curved Wink Arc + Sparkle) -->
+  <path d="M272 142 Q287 125 302 142" fill="none" stroke="#38bdf8" stroke-width="5" stroke-linecap="round" filter="url(#neonGlow)"/>
+  <path d="M275 146 Q287 135 299 146" fill="none" stroke="#0284c7" stroke-width="2" stroke-linecap="round"/>
+  <!-- Wink Sparkle Effect -->
+  <path d="M305 128 L309 135 L316 139 L309 143 L305 150 L301 143 L294 139 L301 135 Z" fill="#38bdf8" filter="url(#neonGlow)"/>
+
+  <!-- CONFIDENT SMIRK / MOUTH -->
+  <path d="M220 180 Q240 185 270 175" fill="none" stroke="#f59e0b" stroke-width="4" stroke-linecap="round"/>
+
+  <!-- Head Antennae / Details -->
+  <path d="M256 80 V60" stroke="#f59e0b" stroke-width="4" stroke-linecap="round"/>
+  <circle cx="256" cy="55" r="6" fill="#38bdf8" filter="url(#neonGlow)"/>
 </svg>
